@@ -10,27 +10,12 @@ GIT
 
 GIT
   remote: git://github.com/mayoral/telegrammer.git
-  revision: ddedf551273158e075ffc9e6dd47f171fbf04f9d
+  revision: 5b3232ec183c003df540433e0f8ab3881e2cb462
   specs:
-    telegrammer (0.0.2)
+    telegrammer (0.0.3)
       multi_json (~> 1.11)
       typhoeus (~> 0.7)
       virtus (~> 1.0)
-
-GIT
-  remote: git://github.com/moropeza/telegram_bot.git
-  revision: d50b7cb410b0112f032a3b90a4f4ba2c6e7892a8
-  branch: keyboard
-  specs:
-    telegram_bot (0.0.1)
-      excon (>= 0.30.0)
-      virtus (>= 1.0.0)
-
-GIT
-  remote: git://github.com/red-tux/zbxapi.git
-  revision: b96b507fa48fc53e160ffcdef4b5aec9ad928f62
-  specs:
-    zbxapi (0.3.10)
 
 GEM
   remote: https://rubygems.org/
@@ -85,8 +70,7 @@ GEM
     erubis (2.7.0)
     ethon (0.7.4)
       ffi (>= 1.3.0)
-    excon (0.45.3)
-    ffi (1.9.8)
+    ffi (1.9.9)
     ffi-yajl (2.2.0)
       libyajl2 (~> 1.2)
     hashie (2.1.2)
@@ -104,6 +88,7 @@ GEM
     mixlib-shellout (2.1.0)
     multi_json (1.11.1)
     multipart-post (2.0.0)
+    net-ping (1.7.7)
     net-scp (1.2.1)
       net-ssh (>= 2.6.5)
     net-ssh (2.9.2)
@@ -156,7 +141,7 @@ GEM
       rspec-its
       specinfra (~> 2.35)
     slop (3.6.0)
-    specinfra (2.36.5)
+    specinfra (2.36.6)
       net-scp
       net-ssh
     syslog-logger (1.6.8)
@@ -176,7 +161,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  net-ping (~> 1.7.7)
   rubix!
-  telegram_bot!
   telegrammer!
-  zbxapi (= 0.3.10)!
