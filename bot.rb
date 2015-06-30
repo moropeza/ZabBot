@@ -5,6 +5,7 @@ require 'date'
 require 'net/ping/icmp'
 
 #Constantes
+MAX_QUERY = 15
 TEXTO_PING_EXITO = 'Ping exitoso 😀'
 TEXTO_PING_FALLA = 'Ping fallido 😞'
 TEXTO_COMANDO_NO = 'No conozco ese comando 😕'
@@ -84,7 +85,7 @@ reply_markup_commands = Telegrammer::DataTypes::ReplyKeyboardMarkup.new(
 		],
 	resize_keyboard: true,
 	one_time_keyboard: false,
-	selective: false
+	selective: true
 )
 
 	# Otras variables
@@ -101,7 +102,7 @@ bot.get_updates do |message|
 	end
 
 	#Verifica identidad del usuario
-	if check_auth(message.chat.id) == 0
+	if not check_auth(message.chat.id)
 		bot.send_message(chat_id: message.chat.id, text: TEXTO_NO_AUTORIZADO)
  		next	# No continúa procesando el comando recibido si el usuario no está autorizado
 	end
@@ -115,19 +116,27 @@ bot.get_updates do |message|
 	when /alertas/i
 		#------------- Comando /alertas ------------------#
 
-		response = Rubix.connection.request(	# Usa la API de Zabbix para buscar los triggers en estado de alerta
+		response = Rubix.connection.request(	# Usa la API de Zabbix para buscar los triggers habilitados, válidos y en estado de alerta
 			'trigger.get', 
-			'filter' => { 'value' => 1 },
+			'filter' => { 'value' => 1, 'status' => 0, 'state' => '0' },
 			'output' => [ 'triggerid', 'description', 'priority', 'lastchange' ],
 			'selectHosts' => [ 'host' ],
 			'expandDescription' => 'true',
 			'sortfield' => 'priority',
+			'limit' => MAX_QUERY,
 			'sortorder' => 'DESC')
 		case
 		when response.has_data?
 			# Response is a success and "has data" -- it's not empty.
 
-			msg = "Hay " + response.result.size.to_s + " alerta(s) activa(s):\n"
+			case response.result.size
+			when 1
+				msg = "Hay una alerta activa:\n"
+			when MAX_QUERY
+				msg = "Sólo se muestran las primeras " + MAX_QUERY.to_s + " alertas activas.\n"
+			else
+				msg = "Hay " + response.result.size.to_s + " alertas activas:\n"
+			end
 			response.result.each_with_index.map do |result, i|
 				k = i+1
 				msg += k.to_s + ".- ''" + result['description']
@@ -155,13 +164,21 @@ bot.get_updates do |message|
 			'selectInterfaces' => [ 'ip', 'dns', 'main' ],
 			'search' => { 'host' => search[1], 'name' => search[1], 'dns' => search[1], 'ip' => search[1] },
 			'searchInventory' => { 'type' => search[1], 'location' => search[1] },
+			'limit' => MAX_QUERY,
 			'searchByAny' => 'true'
 			)
 		case
 		when response.has_data?
 			# Response is a success and "has data" -- it's not empty.
 
-			msg = "Se encontraron " + response.result.size.to_s + " host(s):\n"
+			case response.result.size
+			when 1
+				msg = "Se encontró un host:\n"
+			when MAX_QUERY
+				msg = "Sólo se muestran los primeros " + MAX_QUERY.to_s + " hosts encontrados.\n"
+			else
+				msg = "Se encontraron " + response.result.size.to_s + " hosts:\n"
+			end
 			response.result.each_with_index.map do |result, i|
 				k = i+1
 				msg += k.to_s + ".- ''" + result['host'] + "'', tipo: ''"
@@ -171,7 +188,7 @@ bot.get_updates do |message|
 				end
 				msg += ".\n"
 			end
-			bot.send_message(chat_id: message.chat.id, text: msg, reply_markup: reply_markup_commands)
+ 			bot.send_message(chat_id: message.chat.id, text: msg, reply_markup: reply_markup_commands)
 		when response.success?
 			# Response was successful but doesn't "have data" -- it's empty
 			bot.send_message(chat_id: message.chat.id, text: TEXTO_BUSQUEDA_VACIA, reply_markup: reply_markup_commands)
@@ -211,5 +228,5 @@ bot.get_updates do |message|
 	end
 
 		#Guarda el último comando solicitado por el usuario
-	menus[message.chat.id] = message.text.split[0]
+	menus[message.chat.id.abs] = message.text.split[0]
 end
