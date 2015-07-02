@@ -94,7 +94,7 @@ menus = Array.new
 
 # Ciclo de escucha en Telegram
 bot.get_updates do |message|
-	puts "In chat #{message.chat.id}, @#{message.from.username} said: #{message.text}"
+#	puts "In chat #{message.chat.id}, @#{message.from.username} said: #{message.text}"
 	
 	#Sale
 	if kill
