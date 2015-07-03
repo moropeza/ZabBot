@@ -16,6 +16,7 @@ TEXTO_BIENVENIDO = 'Bienvenido, ¿En qué te puedo ayudar?'
 TEXTO_NO_ALERTAS = 'No hay alertas activas.'
 TEXTO_PREGUNTAR_IP = '¿A cuál dirección IP debo hacer ping?'
 TEXTO_HOST_INVALIDO = 'Dirección IP o DNS inválido 😕'
+TEXTO_HELP = "help - Esta ayuda.\nalertas - Lista las alertas activas.\nbuscar - Lista los hosts que coinciden con el criterio de búsqueda.\nping - Realiza un comando ping y devuelve el resultado."
 TOKEN = '76761933:AAH-pqzGRpWzJffknFlieDxw8lSExSOaLxE'
 REGEXP_IP = '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
 #REGEXP_DNS = '^(?![0-9]+$)(?!-)[a-zA-Z0-9-]{,63}(?<!-)$'
@@ -113,6 +114,11 @@ bot.get_updates do |message|
 		#------------- Comando /start ------------------#		
 
 		bot.send_message(chat_id: message.chat.id, text: TEXTO_BIENVENIDO, reply_markup: reply_markup_commands)
+
+ 	when /help/i
+		#------------- Comando /help ------------------#		
+
+		bot.send_message(chat_id: message.chat.id, text: TEXTO_HELP, reply_markup: reply_markup_commands)
 
 	when /alertas/i
 		#------------- Comando /alertas ------------------#
@@ -233,5 +239,7 @@ bot.get_updates do |message|
 	end
 
 		#Guarda el último comando solicitado por el usuario
-	menus[message.chat.id.abs] = message.text.split[0]
+	if not message.text.nil?
+		menus[message.chat.id.abs] = message.text.split[0]
+	end
 end
