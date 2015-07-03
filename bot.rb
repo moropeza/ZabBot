@@ -5,7 +5,8 @@ require 'date'
 require 'net/ping/icmp'
 
 #Constantes
-MAX_QUERY = 15
+MAX_QUERY = 5
+TEXTO_DELIMITADOR = '--------'
 TEXTO_PING_EXITO = 'Ping exitoso 😀'
 TEXTO_PING_FALLA = 'Ping fallido 😞'
 TEXTO_COMANDO_NO = 'No conozco ese comando 😕'
@@ -142,6 +143,7 @@ bot.get_updates do |message|
 				msg += k.to_s + ".- ''" + result['description']
 				msg += "'', en ''" + result["hosts"][0]["host"]
 				msg += "'', desde el " + Time.at(result['lastchange'].to_i).strftime("%-d-%-m-%Y a las %H:%M") + ".\n"
+				msg += TEXTO_DELIMITADOR + "\n"
 			end
 			bot.send_message(chat_id: message.chat.id, text: msg, reply_markup: reply_markup_commands)
 		when response.success?
@@ -161,7 +163,7 @@ bot.get_updates do |message|
 			'host.get',			# en el mensaje
 			'output' => [ 'hostid', 'host', 'name' ],
 			'selectInventory' => [ 'type', 'location' ],
-			'selectInterfaces' => [ 'ip', 'dns', 'main' ],
+			'selectInterfaces' => [ 'ip', 'dns', 'main', 'type' ],
 			'search' => { 'host' => search[1], 'name' => search[1], 'dns' => search[1], 'ip' => search[1] },
 			'searchInventory' => { 'type' => search[1], 'location' => search[1] },
 			'limit' => MAX_QUERY,
@@ -179,14 +181,17 @@ bot.get_updates do |message|
 			else
 				msg = "Se encontraron " + response.result.size.to_s + " hosts:\n"
 			end
-			response.result.each_with_index.map do |result, i|
+			response.result.each_with_index do |result, i|
 				k = i+1
 				msg += k.to_s + ".- ''" + result['host'] + "'', tipo: ''"
 				msg += result['inventory']['type'] + "'', ubicación: ''" + result['inventory']['location'] + "'', IP(s): "
 				result['interfaces'].each do |interface|
-					msg += "''" + interface['ip'].to_s + "''"
+#					if (interface['main'].to_i == 1) and (interface['type'].to_i == 1)
+					if interface['type'].to_i == 1
+						msg += "''" + interface['ip'].to_s + "''.\n"
+					end
 				end
-				msg += ".\n"
+				msg += TEXTO_DELIMITADOR + "\n"
 			end
  			bot.send_message(chat_id: message.chat.id, text: msg, reply_markup: reply_markup_commands)
 		when response.success?
