@@ -131,6 +131,7 @@ bot.get_updates do |message|
 			'expandDescription' => 'true',
 			'sortfield' => 'priority',
 			'limit' => MAX_QUERY,
+			'active' => 'true',
 			'sortorder' => 'DESC')
 		case
 		when response.has_data?
