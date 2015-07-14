@@ -6,6 +6,8 @@ require 'net/ping/icmp'
 
 #Constantes
 MAX_QUERY = 5
+ZBX_USR = 'gtelecom'
+ZBX_PWD = 'gtelecom'
 TEXTO_DELIMITADOR = '--------'
 TEXTO_PING_EXITO = 'Ping exitoso 😀'
 TEXTO_PING_FALLA = 'Ping fallido 😞'
@@ -63,7 +65,7 @@ def ping_to_bot(host, retries, bot, chat, reply)
 end
 
 	#Conecta con Zabbix
-Rubix.connect('http://localhost/zabbix/api_jsonrpc.php', 'Admin', 'zabbix')
+Rubix.connect('http://localhost/zabbix/api_jsonrpc.php', ZBX_USR, ZBX_PWD)
 
 	#Conecta con Telegram
 bot = Telegrammer::Bot.new(TOKEN)
@@ -96,7 +98,7 @@ menus = Array.new
 
 # Ciclo de escucha en Telegram
 bot.get_updates do |message|
-#	puts "In chat #{message.chat.id}, @#{message.from.username} said: #{message.text}"
+	puts "In chat #{message.chat.id}, @#{message.from.username} said: #{message.text}"
 	
 	#Sale
 	if kill
