@@ -5,7 +5,7 @@ require 'date'
 require 'net/ping/icmp'
 
 #Constantes
-MAX_QUERY = 5
+MAX_QUERY = 10
 ZBX_USR = 'gtelecom'
 ZBX_PWD = 'gtelecom'
 TEXTO_DELIMITADOR = '--------'
@@ -17,6 +17,7 @@ TEXTO_BUSQUEDA_VACIA = 'No se encontraron resultados.'
 TEXTO_BIENVENIDO = 'Bienvenido, ¿En qué te puedo ayudar?'
 TEXTO_NO_ALERTAS = 'No hay alertas activas.'
 TEXTO_PREGUNTAR_IP = '¿A cuál dirección IP debo hacer ping?'
+TEXTO_PREGUNTAR_BUSCAR = 'Texto a buscar (puede ser parte de un nombre, sitio, tipo de equipo ó dirección IP):'
 TEXTO_HOST_INVALIDO = 'Dirección IP o DNS inválido 😕'
 TEXTO_HELP = "help - Esta ayuda.\nalertas - Lista las alertas activas.\nbuscar - Lista los hosts que coinciden con el criterio de búsqueda.\nping - Realiza un comando ping y devuelve el resultado."
 TOKEN = '76761933:AAH-pqzGRpWzJffknFlieDxw8lSExSOaLxE'
@@ -62,6 +63,51 @@ def ping_to_bot(host, retries, bot, chat, reply)
 		#host no es una dirección IP o un DNS válido
 		bot.send_message(chat_id: chat, text: TEXTO_HOST_INVALIDO, reply_markup: reply)
 	end
+end
+
+	#Rutina que realiza una búsqueda de host con la API de Zabbix y envía el resultado a un telegram bot
+def search_to_bot(search, zabbix, bot, chat, reply)
+	response = zabbix.connection.request(	# Usa la API de Zabbix para buscar hosts con el criterio indicado
+		'host.get',			# en el mensaje
+		'output' => [ 'hostid', 'host', 'name' ],
+		'selectInventory' => [ 'type', 'location' ],
+		'selectInterfaces' => [ 'ip', 'dns', 'main', 'type' ],
+		'search' => { 'host' => search, 'name' => search, 'dns' => search, 'ip' => search },
+		'searchInventory' => { 'type' => search, 'location' => search },
+		'limit' => MAX_QUERY,
+		'searchByAny' => 'true'
+		)
+	case
+	when response.has_data?
+		# Response is a success and "has data" -- it's not empty.
+
+		case response.result.size
+		when 1
+			msg = "Se encontró un host:\n"
+		when MAX_QUERY
+			msg = "Sólo se muestran los primeros " + MAX_QUERY.to_s + " hosts encontrados.\n"
+		else
+			msg = "Se encontraron " + response.result.size.to_s + " hosts:\n"
+		end
+		response.result.each_with_index do |result, i|
+			k = i+1
+			msg += k.to_s + ".- ''" + result['host'] + "'', tipo: ''"
+			msg += result['inventory']['type'] + "'', ubicación: ''" + result['inventory']['location'] + "'', IP: "
+			result['interfaces'].each do |interface|
+				if (interface['main'].to_i == 1) and (interface['type'].to_i == 1)
+					msg += "''" + interface['ip'].to_s + "''.\n"
+				end
+			end
+			msg += TEXTO_DELIMITADOR + "\n"
+		end
+ 		bot.send_message(chat_id: chat, text: msg, reply_markup: reply)
+	when response.success?
+		# Response was successful but doesn't "have data" -- it's empty
+		bot.send_message(chat_id: chat, text: TEXTO_BUSQUEDA_VACIA, reply_markup: reply)
+	else
+		# Response was an error. Uh oh!
+		bot.send_message(chat_id: chat, text: response.error_message, reply_markup: reply)
+	end		
 end
 
 	#Conecta con Zabbix
@@ -167,51 +213,14 @@ bot.get_updates do |message|
 	when /buscar/i
 		#------------- Comando /buscar ------------------#
 
-		search = message.text.split	# Obtiene el texto a buscar
-
-		response = Rubix.connection.request(	# Usa la API de Zabbix para buscar hosts con el criterio indicado
-			'host.get',			# en el mensaje
-			'output' => [ 'hostid', 'host', 'name' ],
-			'selectInventory' => [ 'type', 'location' ],
-			'selectInterfaces' => [ 'ip', 'dns', 'main', 'type' ],
-			'search' => { 'host' => search[1], 'name' => search[1], 'dns' => search[1], 'ip' => search[1] },
-			'searchInventory' => { 'type' => search[1], 'location' => search[1] },
-			'limit' => MAX_QUERY,
-			'searchByAny' => 'true'
-			)
-		case
-		when response.has_data?
-			# Response is a success and "has data" -- it's not empty.
-
-			case response.result.size
-			when 1
-				msg = "Se encontró un host:\n"
-			when MAX_QUERY
-				msg = "Sólo se muestran los primeros " + MAX_QUERY.to_s + " hosts encontrados.\n"
-			else
-				msg = "Se encontraron " + response.result.size.to_s + " hosts:\n"
-			end
-			response.result.each_with_index do |result, i|
-				k = i+1
-				msg += k.to_s + ".- ''" + result['host'] + "'', tipo: ''"
-				msg += result['inventory']['type'] + "'', ubicación: ''" + result['inventory']['location'] + "'', IP(s): "
-				result['interfaces'].each do |interface|
-#					if (interface['main'].to_i == 1) and (interface['type'].to_i == 1)
-					if interface['type'].to_i == 1
-						msg += "''" + interface['ip'].to_s + "''.\n"
-					end
-				end
-				msg += TEXTO_DELIMITADOR + "\n"
-			end
- 			bot.send_message(chat_id: message.chat.id, text: msg, reply_markup: reply_markup_commands)
-		when response.success?
-			# Response was successful but doesn't "have data" -- it's empty
-			bot.send_message(chat_id: message.chat.id, text: TEXTO_BUSQUEDA_VACIA, reply_markup: reply_markup_commands)
+		#Verifica si el usuario envió el texto a buscar
+		search = message.text.split
+		if search.size > 1
+			search_to_bot(search[1], Rubix, bot, message.chat.id, reply_markup_commands)
 		else
-			# Response was an error. Uh oh!
-			bot.send_message(chat_id: message.chat.id, text: response.error_message, reply_markup: reply_markup_commands)
+			bot.send_message(chat_id: message.chat.id, text: TEXTO_PREGUNTAR_BUSCAR, reply_markup: reply_markup_hide)
 		end
-		
+
 	when /kill/i
 		#------------- Comando /kill ------------------#
 
@@ -236,6 +245,9 @@ bot.get_updates do |message|
 		when /ping/i
 			host = message.text.split
 			ping_to_bot(host[0], host[1].to_i, bot, message.chat.id, reply_markup_commands)
+		when /buscar/i
+			search = message.text.split
+			search_to_bot(search[0], Rubix, bot, message.chat.id, reply_markup_commands)
 		else
 			# En definitiva el mensaje recibido no es válido
 			bot.send_message(chat_id: message.chat.id, text: TEXTO_COMANDO_NO, reply_markup: reply_markup_commands)
