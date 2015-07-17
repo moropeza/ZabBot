@@ -89,7 +89,8 @@ reply_markup_commands = Telegrammer::DataTypes::ReplyKeyboardMarkup.new(
 		],
 	resize_keyboard: true,
 	one_time_keyboard: false,
-	selective: true
+	selective: false
+#	selective: true
 )
 
 	# Otras variables
@@ -98,7 +99,7 @@ menus = Array.new
 
 # Ciclo de escucha en Telegram
 bot.get_updates do |message|
-	puts "In chat #{message.chat.id}, @#{message.from.username} said: #{message.text}"
+	#puts "In chat #{message.chat.id}, @#{message.from.username} said: #{message.text}"
 	
 	#Sale
 	if kill
